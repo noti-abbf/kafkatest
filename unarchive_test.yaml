@@ -1,6 +1,6 @@
 ---
 - name: Transfer and unpack tar.gz file
-  hosts: local
+  hosts: kafka
   become: yes
   tasks:
     - name: Copy tar.gz file to remote server
