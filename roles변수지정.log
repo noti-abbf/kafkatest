@@ -1,0 +1,103 @@
+Ansible에서 roles의 `vars` 디렉터리 내에 `main.yml` 파일을 사용하여 변수를 지정할 수 있습니다. 이를 통해 해당 role 내에서 사용할 변수를 정의할 수 있습니다. 아래에 간단한 예제를 통해 어떻게 설정할 수 있는지 보여드리겠습니다.
+
+### Directory Structure
+
+```
+roles/
+  webserver/
+    tasks/
+      main.yml
+    vars/
+      main.yml
+    templates/
+      nginx.conf.j2
+```
+
+### Sample Role: `webserver`
+
+1. **`roles/webserver/tasks/main.yml`**:
+   ```yaml
+   - name: Install Nginx
+     apt:
+       name: nginx
+       state: present
+     become: yes
+
+   - name: Copy Nginx config file
+     template:
+       src: nginx.conf.j2
+       dest: /etc/nginx/nginx.conf
+     notify: Restart Nginx
+
+   - name: Ensure Nginx is running
+     service:
+       name: nginx
+       state: started
+       enabled: yes
+   ```
+
+2. **`roles/webserver/vars/main.yml`**:
+   ```yaml
+   nginx_user: www-data
+   nginx_worker_processes: auto
+   nginx_error_log: /var/log/nginx/error.log
+   nginx_access_log: /var/log/nginx/access.log
+   ```
+
+3. **`roles/webserver/templates/nginx.conf.j2`**:
+   ```jinja
+   user {{ nginx_user }};
+   worker_processes {{ nginx_worker_processes }};
+
+   error_log {{ nginx_error_log }};
+   access_log {{ nginx_access_log }};
+
+   events {
+       worker_connections 768;
+   }
+
+   http {
+       sendfile on;
+       tcp_nopush on;
+       tcp_nodelay on;
+       keepalive_timeout 65;
+       types_hash_max_size 2048;
+
+       include /etc/nginx/mime.types;
+       default_type application/octet-stream;
+
+       access_log /var/log/nginx/access.log;
+       error_log /var/log/nginx/error.log;
+
+       gzip on;
+       gzip_disable "msie6";
+
+       include /etc/nginx/conf.d/*.conf;
+       include /etc/nginx/sites-enabled/*;
+   }
+   ```
+
+### Playbook Example
+
+4. **`site.yml`**:
+   ```yaml
+   - hosts: webservers
+     roles:
+       - webserver
+   ```
+
+### 설명
+
+1. **`roles/webserver/tasks/main.yml`**:
+   - 이 파일에서는 Nginx를 설치하고, 설정 파일을 복사하며, Nginx 서비스를 시작하고 활성화합니다.
+
+2. **`roles/webserver/vars/main.yml`**:
+   - 여기에서는 Nginx 설정에 사용할 변수를 정의합니다.
+
+3. **`roles/webserver/templates/nginx.conf.j2`**:
+   - 이 파일은 Nginx 설정 파일의 Jinja2 템플릿입니다. `vars/main.yml`에 정의된 변수들을 사용하여 Nginx 설정 파일을 동적으로 생성합니다.
+
+4. **`site.yml`**:
+   - 이 파일은 Ansible Playbook의 메인 파일로, `webserver` role을 `webservers` 호스트 그룹에 적용합니다.
+
+이 예제는 Ansible role을 정의하고 변수 파일을 사용하여 설정을 동적으로 관리하는 방법을 보여줍니다. `vars/main.yml`에 정의된 변수들은 role 내의 모든 task와 템플릿에서 사용할 수 있습니다.

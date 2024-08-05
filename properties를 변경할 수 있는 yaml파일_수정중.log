@@ -1,0 +1,94 @@
+Ansible을 사용하여 디렉터리를 체크한 후 이상 유무를 출력하는 방법을 보여드리겠습니다. 이 예제에서는 특정 디렉터리가 존재하는지 여부를 확인하고, 존재하지 않으면 오류 메시지를 출력하도록 하겠습니다.
+
+### Directory Structure
+
+```
+roles/
+  kaf_server_properties/
+    tasks/
+      main.yml
+    vars/
+      main.yml
+```
+
+### 1. `roles/kaf_server_properties/vars/main.yml`
+```yaml
+kafka_config_path: /opt/kafka/config
+```
+
+### 2. `roles/kaf_server_properties/tasks/main.yml`
+```yaml
+- name: Check if Kafka config directory exists
+  stat:
+    path: "{{ kafka_config_path }}"
+  register: kafka_config_dir
+
+- name: Print error if Kafka config directory does not exist
+  debug:
+    msg: "Error: Kafka config directory does not exist at {{ kafka_config_path }}"
+  when: not kafka_config_dir.stat.exists
+
+- name: Fail if Kafka config directory does not exist
+  fail:
+    msg: "Kafka config directory does not exist at {{ kafka_config_path }}"
+  when: not kafka_config_dir.stat.exists
+
+- name: Ensure Kafka config directory exists
+  file:
+    path: "{{ kafka_config_path }}"
+    state: directory
+  when: not kafka_config_dir.stat.exists
+
+- name: Check if server.properties exists
+  stat:
+    path: "{{ kafka_config_path }}/server.properties"
+  register: server_properties_file
+
+- name: Backup the server.properties file
+  copy:
+    src: "{{ kafka_config_path }}/server.properties"
+    dest: "{{ kafka_config_path }}/server.properties_{{ ansible_date_time.date }}"
+  when: server_properties_file.stat.exists
+
+- name: Set broker.id in server.properties
+  lineinfile:
+    path: "{{ kafka_config_path }}/server.properties"
+    regexp: '^broker.id='
+    line: "broker.id={{ broker_id }}"
+```
+
+### 3. `site.yml`
+```yaml
+- hosts: kafka_servers
+  roles:
+    - role: kaf_server_properties
+```
+
+### 설명
+
+1. **`roles/kaf_server_properties/vars/main.yml`**:
+   - `kafka_config_path` 변수를 정의합니다.
+
+2. **`roles/kaf_server_properties/tasks/main.yml`**:
+   - **Check if Kafka config directory exists**: `stat` 모듈을 사용하여 `kafka_config_path`가 존재하는지 확인하고, 결과를 `kafka_config_dir` 변수에 저장합니다.
+   - **Print error if Kafka config directory does not exist**: 디렉터리가 존재하지 않으면 오류 메시지를 출력합니다.
+   - **Fail if Kafka config directory does not exist**: 디렉터리가 존재하지 않으면 Playbook 실행을 실패로 처리합니다.
+   - **Ensure Kafka config directory exists**: 디렉터리가 존재하지 않으면 생성합니다.
+   - **Check if server.properties exists**: `server.properties` 파일이 존재하는지 확인하고, 결과를 `server_properties_file` 변수에 저장합니다.
+   - **Backup the server.properties file**: `server.properties` 파일이 존재할 경우, `YYYYMMDD` 형식의 날짜를 붙여서 백업합니다.
+   - **Set broker.id in server.properties**: `lineinfile` 모듈을 사용하여 `server.properties` 파일에서 `broker.id` 값을 변경합니다.
+
+3. **`site.yml`**:
+   - 이 파일은 Ansible Playbook의 메인 파일로, `kafka_servers` 호스트 그룹에 `kaf_server_properties` role을 적용합니다.
+
+### 실행 방법
+
+1. 위의 디렉터리 구조와 파일들을 설정합니다.
+2. `hosts` 파일을 설정하여 `kafka_servers` 호스트 그룹을 정의합니다.
+3. `site.yml`을 실행하여 Playbook을 적용합니다.
+
+```sh
+ansible-playbook -i hosts site.yml
+```
+
+이 Playbook은 Kafka 설정 디렉터리가 존재하는지 확인하고, 존재하지 않을 경우 오류 메시지를 출력하며 Playbook 실행을 실패로 처리합니다. 그 후 `server.properties` 파일의 `broker.id` 값을 변경하며, 변경 전에 기존 파일을 백업합니다.

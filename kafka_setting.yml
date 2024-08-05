@@ -1,0 +1,52 @@
+- hosts: local
+  roles:
+    - dircheck_main
+    - dircheck_sub : 
+       check 범위 : /kafka/app, /kafka/src, /svc_log/kaf_log, /svc_log/zoo_log/, /zoo_data/snapshot, /zoo_data/transdata
+    - make_sub_dir :
+       생성 범위 : /kafka/app/configuration, /kafka/app/env, /kafka/app/script, /kafka/src, /svc_log/kaf_log, /svc_log/zoo_log, /zoo_data/snapshot, /zoo_data/transdata
+    - file_send_unarchive : /kafka/src 로 파일 이동 및 압축 해제
+    - kafka_engine_move : kafka engine파일을 /kafka 밑으로 옮긴다.
+    - kafka_custom_move : /kafka/app/script와 /kafka/app/env 에 해당하는 파일을 옮기고
+    - kafka_conf_modify : --> 어차피 디렉토리 구조를 만들어 놓고 옮긴다 치면,
+app/configuration 디렉토리에 해당 엔진의 본 server.properties, zookeeper.properties의 copy본을 미리 넣어 구성 후 묶어준다.
+그리고 그대로 unarchive 후 데이터 이동, _org 파일을 복사해서 데이터 수정 후 _org를 없애주면 될 것 같다.
+    - change_owner_dir : 전체 디렉토리에 대해 kafka control 계정으로 권한 부여
+    - total_check : /kafka 관련 디렉토리 권한체크, /kafka/bin/
+
+
+
+
+
+
+
+
+
+##################
+- name: Test Playbook
+  hosts: all
+  roles:
+    - role: myrole
+      broker_id: "{{ broker_id }}"
+      myid: "{{ myid }}"
+
+
+이렇게 쓸 수 있다고
+
+
+저렇게 쓰려면 myrole의 vars에 아래와 같이 지정하고
+---
+# Default values (if any)
+broker_id: default_broker_id
+myid: default_myid
+
+
+myrole의 메인에서 이렇게 씀
+---
+- name: Print broker.id and myid from role
+  debug:
+    msg: "broker.id={{ broker_id }}, myid={{ myid }}"
+
+broker가 3대면
+ansible을 수행하는 스크립트 파일에서
+for문을 이용해서 1,2,3 다 수행하게끔 최종적으로 만들어주면되나..?
