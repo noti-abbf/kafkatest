@@ -1,0 +1,16 @@
+---
+- name: Transfer and unpack tar.gz file
+  hosts: local
+  become: yes
+  tasks:
+    - name: Copy tar.gz file to remote server
+      copy:
+        src: /monitoring/src/3.31.0.tar.gz
+        dest: /kafka/src/3.31.0.tar.gz
+    
+    - name: Unpack tar.gz file on remote server
+      unarchive:
+        src: /kafka/src/3.31.0.tar.gz 
+        dest: /kafka/src/
+        remote_src: yes
+
