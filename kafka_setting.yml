@@ -1,0 +1,20 @@
+- hosts: kafka
+  vars:
+    hosts_group: kafka
+    sol_user: "kafka"
+    sol_group: "kafka"
+    broker_name: "broker"
+    kaf_eng_ver: "kafka_2.13-3.7.0"
+  become: yes
+  become_user: " {{ sol_user }}"
+  roles:
+    - dircheck_main
+    - dircheck_sub
+    - make_sub_dir
+    - file_send_unarchive
+    - kafka_engine_move
+    - kafka_custom_move
+    - kafka_conf_mvcp
+    - kaf_server_properties
+    - kaf_zookeeper_properties
+    - alias_setting
